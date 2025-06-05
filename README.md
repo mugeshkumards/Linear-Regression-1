@@ -1,12 +1,49 @@
-# React + Vite
+# 📊 Linear Regression Visualizer (React.js)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive web-based visualization tool to explore **Simple Linear**, **Multiple Linear**, and **Polynomial Regression** with synthetic datasets. Built using React.js, Recharts, and Tailwind CSS.
 
-Currently, two official plugins are available:
+![screenshot](./preview.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## Expanding the ESLint configuration
+- 📈 Visualize different types of regression:
+  - Simple Linear Regression (1 predictor)
+  - Multiple Linear Regression (4 predictors)
+  - Polynomial Regression (non-linear, degree 3)
+- 🧮 Built-in regression equation display and R² value
+- 📉 Interactive charts powered by `recharts`
+- 📂 Export dataset as CSV
+- 💻 Python implementation snippets included for each regression type
+- 🔍 Key insights dynamically generated
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 🧰 Tech Stack
+
+- **Frontend**: React.js, Tailwind CSS
+- **Charts**: Recharts
+- **Data Generation**: Procedurally generated datasets (synthetic)
+- **Export**: CSV file download via Blob API
+
+---
+
+## 📦 Installation
+
+### Prerequisites
+Make sure you have the following installed:
+- Node.js (v14+)
+- npm or yarn
+- Git (optional, if cloning via terminal)
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/linear-regression-visualizer.git
+cd linear-regression-visualizer
+
+# Install dependencies
+npm install
+
+# Run the development server
+npm start
