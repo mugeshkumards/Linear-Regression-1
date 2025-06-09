@@ -1,8 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
+import React, { useState } from "react";
+import {
+  Chart as ChartJS,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+} from "chart.js";
+import { Scatter, Line } from "react-chartjs-2";
+
+ChartJS.register(
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  CategoryScale
+);
 
 const LinearRegression = () => {
-  const [selectedExample, setSelectedExample] = useState('simple');
+  const [selectedExample, setSelectedExample] = useState("simple");
   const [showResults, setShowResults] = useState(false);
 
   // Generate datasets
@@ -23,17 +41,21 @@ const LinearRegression = () => {
       const bedrooms = Math.floor(Math.random() * 5) + 1; // 1-5 bedrooms
       const age = Math.random() * 50; // 0-50 years old
       const location = Math.random() > 0.5 ? 1 : 0; // Good location (1) or not (0)
-      
+
       // Price = 50*size + 5000*bedrooms - 200*age + 20000*location + noise
-      const price = 50 * size + 5000 * bedrooms - 200 * age + 20000 * location + 
-                   (Math.random() * 20000 - 10000);
-      
+      const price =
+        50 * size +
+        5000 * bedrooms -
+        200 * age +
+        20000 * location +
+        (Math.random() * 20000 - 10000);
+
       data.push({
         size: parseFloat(size.toFixed(0)),
         bedrooms,
         age: parseFloat(age.toFixed(1)),
         location,
-        price: parseFloat(price.toFixed(0))
+        price: parseFloat(price.toFixed(0)),
       });
     }
     return data;
@@ -66,12 +88,15 @@ const LinearRegression = () => {
 
     // Calculate R-squared
     const meanY = sumY / n;
-    const totalSumSquares = data.reduce((sum, point) => sum + Math.pow(point.y - meanY, 2), 0);
+    const totalSumSquares = data.reduce(
+      (sum, point) => sum + Math.pow(point.y - meanY, 2),
+      0
+    );
     const residualSumSquares = data.reduce((sum, point) => {
       const predicted = slope * point.x + intercept;
       return sum + Math.pow(point.y - predicted, 2);
     }, 0);
-    const rSquared = 1 - (residualSumSquares / totalSumSquares);
+    const rSquared = 1 - residualSumSquares / totalSumSquares;
 
     return { slope, intercept, rSquared };
   };
@@ -80,55 +105,159 @@ const LinearRegression = () => {
 
   // Generate regression line for plotting
   const generateRegressionLine = (data, slope, intercept) => {
-    const minX = Math.min(...data.map(d => d.x));
-    const maxX = Math.max(...data.map(d => d.x));
+    const minX = Math.min(...data.map((d) => d.x));
+    const maxX = Math.max(...data.map((d) => d.x));
     return [
       { x: minX, y: slope * minX + intercept },
-      { x: maxX, y: slope * maxX + intercept }
+      { x: maxX, y: slope * maxX + intercept },
     ];
   };
 
-  const regressionLine = generateRegressionLine(simpleData, simpleRegression.slope, simpleRegression.intercept);
+  const regressionLine = generateRegressionLine(
+    simpleData,
+    simpleRegression.slope,
+    simpleRegression.intercept
+  );
+
+  // Prepare data for chart.js
+  const getChartData = () => {
+    if (selectedExample === "simple") {
+      return {
+        datasets: [
+          {
+            label: "Data Points",
+            data: simpleData,
+            backgroundColor: "rgba(136, 132, 216, 0.8)",
+            pointRadius: 6,
+            pointHoverRadius: 8,
+          },
+          {
+            label: "Regression Line",
+            data: regressionLine,
+            backgroundColor: "rgba(255, 115, 0, 1)",
+            borderColor: "rgba(255, 115, 0, 1)",
+            borderWidth: 2,
+            pointRadius: 0,
+            type: "line",
+            fill: false,
+          },
+        ],
+      };
+    } else if (selectedExample === "polynomial") {
+      return {
+        datasets: [
+          {
+            label: "Non-linear Data",
+            data: polynomialData,
+            backgroundColor: "rgba(130, 202, 157, 0.8)",
+            pointRadius: 6,
+            pointHoverRadius: 8,
+          },
+        ],
+      };
+    } else {
+      return {
+        datasets: [
+          {
+            label: "Houses",
+            data: multipleData.slice(0, 30).map((d) => ({
+              x: d.size,
+              y: d.price,
+            })),
+            backgroundColor: "rgba(136, 132, 216, 0.8)",
+            pointRadius: 6,
+            pointHoverRadius: 8,
+          },
+        ],
+      };
+    }
+  };
+
+  const chartOptions = {
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text:
+            selectedExample === "multiple"
+              ? "Size (sq ft)"
+              : selectedExample === "polynomial"
+              ? "X"
+              : "x",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text:
+            selectedExample === "multiple"
+              ? "Price ($)"
+              : selectedExample === "polynomial"
+              ? "Y"
+              : "y",
+        },
+      },
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || "";
+            const value = context.parsed;
+            return `${label}: (${value.x.toFixed(2)}, ${value.y.toFixed(2)})`;
+          },
+        },
+      },
+    },
+  };
 
   const dataExamples = {
     simple: {
       title: "Simple Linear Regression",
       description: "Single predictor variable (x) predicting outcome (y)",
       data: simpleData,
-      equation: `y = ${simpleRegression.slope.toFixed(2)}x + ${simpleRegression.intercept.toFixed(2)}`,
-      rSquared: simpleRegression.rSquared.toFixed(3)
+      equation: `y = ${simpleRegression.slope.toFixed(
+        2
+      )}x + ${simpleRegression.intercept.toFixed(2)}`,
+      rSquared: simpleRegression.rSquared.toFixed(3),
     },
     multiple: {
       title: "Multiple Linear Regression",
-      description: "Multiple predictors: House Size, Bedrooms, Age, Location → Price",
+      description:
+        "Multiple predictors: House Size, Bedrooms, Age, Location → Price",
       data: multipleData.slice(0, 10), // Show first 10 rows
       equation: "Price = β₀ + β₁(Size) + β₂(Bedrooms) + β₃(Age) + β₄(Location)",
-      features: ["Size (sq ft)", "Bedrooms", "Age", "Location", "Price ($)"]
+      features: ["Size (sq ft)", "Bedrooms", "Age", "Location", "Price ($)"],
     },
     polynomial: {
       title: "Polynomial Regression",
       description: "Non-linear relationship using polynomial features",
       data: polynomialData,
-      equation: "y = β₀ + β₁x + β₂x² + β₃x³"
-    }
+      equation: "y = β₀ + β₁x + β₂x² + β₃x³",
+    },
   };
 
   const currentExample = dataExamples[selectedExample];
 
   const downloadCSV = (data, filename) => {
-    let csv = '';
-    if (selectedExample === 'simple' || selectedExample === 'polynomial') {
-      csv = 'x,y\n';
-      csv += data.map(row => `${row.x},${row.y}`).join('\n');
+    let csv = "";
+    if (selectedExample === "simple" || selectedExample === "polynomial") {
+      csv = "x,y\n";
+      csv += data.map((row) => `${row.x},${row.y}`).join("\n");
     } else {
-      csv = 'size,bedrooms,age,location,price\n';
-      csv += data.map(row => `${row.size},${row.bedrooms},${row.age},${row.location},${row.price}`).join('\n');
+      csv = "size,bedrooms,age,location,price\n";
+      csv += data
+        .map(
+          (row) =>
+            `${row.size},${row.bedrooms},${row.age},${row.location},${row.price}`
+        )
+        .join("\n");
     }
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
+
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
+    const a = document.createElement("a");
+    a.style.display = "none";
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -152,8 +281,8 @@ const LinearRegression = () => {
               onClick={() => setSelectedExample(key)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectedExample === key
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               {example.title}
@@ -164,14 +293,18 @@ const LinearRegression = () => {
 
       {/* Current Example Info */}
       <div className="bg-blue-50 p-4 rounded-lg mb-6">
-        <h2 className="text-xl font-semibold mb-2 text-blue-800">{currentExample.title}</h2>
+        <h2 className="text-xl font-semibold mb-2 text-blue-800">
+          {currentExample.title}
+        </h2>
         <p className="text-blue-700 mb-2">{currentExample.description}</p>
         <p className="font-mono text-sm bg-white p-2 rounded border">
           <strong>Equation:</strong> {currentExample.equation}
         </p>
-        {selectedExample === 'simple' && (
+        {selectedExample === "simple" && (
           <p className="mt-2 text-blue-700">
-            <strong>R-squared:</strong> {currentExample.rSquared} (explains {(parseFloat(currentExample.rSquared) * 100).toFixed(1)}% of variance)
+            <strong>R-squared:</strong> {currentExample.rSquared} (explains{" "}
+            {(parseFloat(currentExample.rSquared) * 100).toFixed(1)}% of
+            variance)
           </p>
         )}
       </div>
@@ -179,48 +312,14 @@ const LinearRegression = () => {
       {/* Visualization */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3">Data Visualization</h3>
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <ResponsiveContainer width="100%" height={400}>
-            {selectedExample === 'simple' ? (
-              <ScatterChart data={simpleData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="x" name="X" />
-                <YAxis dataKey="y" name="Y" />
-                <Tooltip formatter={(value, name) => [value.toFixed(2), name]} />
-                <Scatter name="Data Points" fill="#8884d8" />
-                <Line 
-                  data={regressionLine} 
-                  type="monotone" 
-                  dataKey="y" 
-                  stroke="#ff7300" 
-                  strokeWidth={2}
-                  name="Regression Line"
-                  dot={false}
-                />
-              </ScatterChart>
-            ) : selectedExample === 'polynomial' ? (
-              <ScatterChart data={polynomialData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="x" name="X" />
-                <YAxis dataKey="y" name="Y" />
-                <Tooltip formatter={(value, name) => [value.toFixed(2), name]} />
-                <Scatter name="Non-linear Data" fill="#82ca9d" />
-              </ScatterChart>
-            ) : (
-              <ScatterChart data={multipleData.slice(0, 30)}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="size" name="Size (sq ft)" />
-                <YAxis dataKey="price" name="Price ($)" />
-                <Tooltip 
-                  formatter={(value, name) => [
-                    typeof value === 'number' ? value.toLocaleString() : value, 
-                    name
-                  ]} 
-                />
-                <Scatter name="Houses" fill="#8884d8" />
-              </ScatterChart>
-            )}
-          </ResponsiveContainer>
+        <div className="bg-gray-50 p-4 rounded-lg h-[400px]">
+          {selectedExample === "simple" ? (
+            <Scatter data={getChartData()} options={chartOptions} />
+          ) : selectedExample === "polynomial" ? (
+            <Scatter data={getChartData()} options={chartOptions} />
+          ) : (
+            <Scatter data={getChartData()} options={chartOptions} />
+          )}
         </div>
       </div>
 
@@ -229,44 +328,62 @@ const LinearRegression = () => {
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-lg font-semibold">Sample Data</h3>
           <button
-            onClick={() => downloadCSV(
-              selectedExample === 'multiple' ? multipleData : currentExample.data,
-              `${selectedExample}_regression_data.csv`
-            )}
+            onClick={() =>
+              downloadCSV(
+                selectedExample === "multiple"
+                  ? multipleData
+                  : currentExample.data,
+                `${selectedExample}_regression_data.csv`
+              )
+            }
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Download CSV
           </button>
         </div>
-        
+
         <div className="overflow-x-auto bg-white border rounded-lg">
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                {selectedExample === 'multiple' ? (
+                {selectedExample === "multiple" ? (
                   currentExample.features.map((feature, index) => (
-                    <th key={index} className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                    <th
+                      key={index}
+                      className="px-4 py-2 text-left text-sm font-medium text-gray-700"
+                    >
                       {feature}
                     </th>
                   ))
                 ) : (
                   <>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">X</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Y</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                      X
+                    </th>
+                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                      Y
+                    </th>
                   </>
                 )}
               </tr>
             </thead>
             <tbody>
               {currentExample.data.slice(0, 10).map((row, index) => (
-                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  {selectedExample === 'multiple' ? (
+                <tr
+                  key={index}
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  {selectedExample === "multiple" ? (
                     <>
                       <td className="px-4 py-2 text-sm">{row.size}</td>
                       <td className="px-4 py-2 text-sm">{row.bedrooms}</td>
                       <td className="px-4 py-2 text-sm">{row.age}</td>
-                      <td className="px-4 py-2 text-sm">{row.location ? 'Good' : 'Average'}</td>
-                      <td className="px-4 py-2 text-sm">${row.price.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {row.location ? "Good" : "Average"}
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        ${row.price.toLocaleString()}
+                      </td>
                     </>
                   ) : (
                     <>
@@ -279,17 +396,23 @@ const LinearRegression = () => {
             </tbody>
           </table>
           <div className="p-2 text-xs text-gray-500 bg-gray-50">
-            Showing first 10 rows of {selectedExample === 'multiple' ? multipleData.length : currentExample.data.length} total records
+            Showing first 10 rows of{" "}
+            {selectedExample === "multiple"
+              ? multipleData.length
+              : currentExample.data.length}{" "}
+            total records
           </div>
         </div>
       </div>
 
       {/* Python Implementation */}
       <div className="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm">
-        <h3 className="text-lg font-semibold mb-3 text-white">Python Implementation</h3>
+        <h3 className="text-lg font-semibold mb-3 text-white">
+          Python Implementation
+        </h3>
         <pre className="overflow-x-auto">
-{selectedExample === 'simple' ? `
-# Simple Linear Regression
+          {selectedExample === "simple"
+            ? `# Simple Linear Regression
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
@@ -317,9 +440,9 @@ plt.plot(X, y_pred, color='red', linewidth=2)
 plt.xlabel('X')
 plt.ylabel('Y')
 plt.title('Simple Linear Regression')
-plt.show()
-` : selectedExample === 'multiple' ? `
-# Multiple Linear Regression
+plt.show()`
+            : selectedExample === "multiple"
+            ? `# Multiple Linear Regression
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -347,9 +470,8 @@ for feature, coef in zip(X.columns, model.coef_):
     print(f"  {feature}: {coef:.2f}")
 print(f"Intercept: {model.intercept_:.2f}")
 print(f"R-squared: {r2_score(y_test, y_pred):.3f}")
-print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
-` : `
-# Polynomial Regression
+print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")`
+            : `# Polynomial Regression
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
@@ -380,32 +502,52 @@ plt.plot(X_plot, y_plot, color='red', linewidth=2)
 plt.xlabel('X')
 plt.ylabel('Y')
 plt.title('Polynomial Regression (degree=3)')
-plt.show()
-`}
+plt.show()`}
         </pre>
       </div>
 
       {/* Key Insights */}
       <div className="mt-6 bg-yellow-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-2 text-yellow-800">Key Insights</h3>
+        <h3 className="text-lg font-semibold mb-2 text-yellow-800">
+          Key Insights
+        </h3>
         <ul className="list-disc list-inside text-yellow-700 space-y-1">
-          {selectedExample === 'simple' && (
+          {selectedExample === "simple" && (
             <>
-              <li>Simple linear regression finds the best straight line through data points</li>
-              <li>R-squared of {currentExample.rSquared} means the model explains {(parseFloat(currentExample.rSquared) * 100).toFixed(1)}% of the variance</li>
-              <li>Each unit increase in X is associated with a {simpleRegression.slope.toFixed(2)} unit change in Y</li>
+              <li>
+                Simple linear regression finds the best straight line through
+                data points
+              </li>
+              <li>
+                R-squared of {currentExample.rSquared} means the model explains{" "}
+                {(parseFloat(currentExample.rSquared) * 100).toFixed(1)}% of the
+                variance
+              </li>
+              <li>
+                Each unit increase in X is associated with a{" "}
+                {simpleRegression.slope.toFixed(2)} unit change in Y
+              </li>
             </>
           )}
-          {selectedExample === 'multiple' && (
+          {selectedExample === "multiple" && (
             <>
-              <li>Multiple regression considers several factors simultaneously</li>
-              <li>Each coefficient shows the effect of that variable while holding others constant</li>
-              <li>More complex but can capture real-world relationships better</li>
+              <li>
+                Multiple regression considers several factors simultaneously
+              </li>
+              <li>
+                Each coefficient shows the effect of that variable while holding
+                others constant
+              </li>
+              <li>
+                More complex but can capture real-world relationships better
+              </li>
             </>
           )}
-          {selectedExample === 'polynomial' && (
+          {selectedExample === "polynomial" && (
             <>
-              <li>Polynomial regression can capture non-linear relationships</li>
+              <li>
+                Polynomial regression can capture non-linear relationships
+              </li>
               <li>Uses powers of X (x², x³) as additional features</li>
               <li>Be careful of overfitting with high degree polynomials</li>
             </>
